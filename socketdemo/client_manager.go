@@ -2,7 +2,10 @@ package main
 
 import (
 	"encoding/json"
+	"net/http"
+
 	"github.com/gorilla/websocket"
+	"github.com/satori/go.uuid"
 )
 
 type ClientManager struct {
@@ -58,11 +61,43 @@ func (manager *ClientManager) start() {
 	}
 }
 
+func wsPage(res http.ResponseWriter, req *http.Request) {
+	conn, err := (&websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }}).Upgrade(res, req, nil)
+	if err != nil {
+		http.NotFound(res, req)
+		return
+	}
+	client := &Client{id: uuid.NewV4().String(), socket: conn, send: make(chan []byte)}
+
+	manager.register <- client
+
+	go client.read()
+	go client.write()
+}
+
 func (manager *ClientManager) send(message []byte, ignore *Client) {
 	for conn := range manager.clients {
 		if conn != ignore {
 			conn.send <- message
 		}
+	}
+}
+
+func (c *Client) read() {
+	defer func() {
+		manager.unregister <- c
+		c.socket.Close()
+	}()
+
+	for {
+		_, message, err := c.socket.ReadMessage()
+		if err != nil {
+			manager.unregister <- c
+			c.socket.Close()
+			break
+		}
+		jsonMessage, _ := json.Marshal(&Message{Sender: c.id, Content: string(message)})
+		manager.broadcast <- jsonMessage
 	}
 }
 

@@ -14,7 +14,11 @@ var templates = template.Must(template.ParseFiles("index.html"))
 
 func main() {
 	println("Starting Server")
+	println("Starting Websocket Server")
+	go manager.start()
+
 	http.HandleFunc("/", handler)
+	http.HandleFunc("/ws", wsPage)
 
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
