@@ -7,3 +7,6 @@ go mod init
 go get github.com/gorilla/websocket \
 go get github.com/satori/go.uuid
 go mod vendor
+
+### run
+go run socketdemo
