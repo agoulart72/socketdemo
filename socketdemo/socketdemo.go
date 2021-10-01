@@ -7,7 +7,8 @@ import (
 )
 
 type PageData struct {
-	Title string
+	Title     string
+	ClientIds []string
 }
 
 var templates = template.Must(template.ParseFiles("index.html"))
@@ -31,5 +32,10 @@ func renderTemplate(w http.ResponseWriter, tmpl string, p *PageData) {
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
-	renderTemplate(w, "index", &PageData{Title: "Teste"})
+	pd := PageData{Title: "Teste"}
+	pd.ClientIds = make([]string, len(manager.clients))
+	for client := range manager.clients {
+		pd.ClientIds = append(pd.ClientIds, client.id)
+	}
+	renderTemplate(w, "index", &pd)
 }
